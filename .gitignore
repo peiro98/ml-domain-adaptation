@@ -1,0 +1,7 @@
+__pycache__
+*.pth
+
+# PACS data
+PACS/data
+
+wandb

@@ -57,12 +57,15 @@ class DANN(nn.Module):
             nn.Linear(4096, num_domains),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, classifier: bool) -> torch.Tensor:
         x = self.features(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        x = self.classifier(x)
-        return x
+        
+        if classifier:
+            return self.classifier(x)
+        else:
+            return self.domain_classifier(x)
 
 
 def build_model(num_classes: int, num_domains: int, pretrained: bool) -> DANN:

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.autograd import Function
 
 from urllib.request import urlretrieve
 
@@ -8,6 +9,21 @@ from os.path import exists
 
 ALEXNET_PRETRAINED = "alexnet-owt-4df8aa71.pth"
 ALEXNET_PRETRAINED_URL = "https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth"
+
+# GRADIENT REVERSAL LAYER
+class GRL(Function):
+
+    @staticmethod
+    def forward(ctx, x, alpha):
+        ctx.alpha = alpha
+
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = grad_output.neg() * ctx.alpha
+
+        return output, None
 
 
 class DANN(nn.Module):
@@ -57,15 +73,15 @@ class DANN(nn.Module):
             nn.Linear(4096, num_domains),
         )
 
-    def forward(self, x: torch.Tensor, classifier: bool) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, _lambda: None) -> torch.Tensor:
         x = self.features(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         
-        if classifier:
+        if _lambda is None:
             return self.classifier(x)
         else:
-            return self.domain_classifier(x)
+            return self.domain_classifier(GRL.apply(x, _lambda))
 
 
 def build_model(num_classes: int, num_domains: int, pretrained: bool) -> DANN:
